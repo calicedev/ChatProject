@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ChatServer">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/ChatServer.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
