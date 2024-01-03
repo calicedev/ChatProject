@@ -70,8 +70,15 @@ public class Client {
 		@Override
 		public void run() {
 			Scanner scanner = new Scanner(System.in);
+			long lastSendTime = System.currentTimeMillis();
+			long sendInterval = 1000; // 흐름 제어를 위한 전송 간격 (예: 1초)
+
 			while(dos != null){
 				try {
+					if (System.currentTimeMillis() - lastSendTime < sendInterval) {
+						continue; // 네트워크 혼잡을 피하기 위해 일정 시간 간격을 둠
+					}
+
 					JSONObject jsonObject = new JSONObject();
 					// 처음 입장한 사람. 로그인 안된 상태. 
 					if(status == NOT_LOGGED_IN){
@@ -123,9 +130,10 @@ public class Client {
 						status = TEXT_TRANSMITTING;
 						fileInfo.clear();
 					}
+					lastSendTime = System.currentTimeMillis(); // 마지막 전송 시간 업데이트
 				} catch(SocketException e){
 					e.printStackTrace();
-					System.out.println("서버와 연결이 끊어졌습니다.1");
+					System.out.println("서버와 연결이 끊어졌습니다.");
 					closeAll();
 					// break하지 않으면 SocketException가 무한으로 뜸
 					break;

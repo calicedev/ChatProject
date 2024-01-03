@@ -74,19 +74,35 @@ class FileDownloader extends Thread {
 
     @Override
     public void run() {
-        try {    // 파일 다운로드
-            byte[] buf = new byte[1024];
-            int read = 0;
-            while ((read = fDis.read(buf, 0, buf.length)) > 0) {
-                fos.write(buf, 0, read);
+        try {
+            // 파일을 저장할 객체 생성
+
+                byte[] buf = new byte[1024];
+                int read;
+
+                while (true) {
+                    // 서버로부터 헤더 정보(패킷 번호와 바이트 수)를 읽음
+                    String headerJson = fDis.readUTF();
+                    if ("END_OF_FILE".equals(headerJson)) {
+                        System.out.println("다운로드를 완료했습니다.");
+                        break; // 파일 다운로드 완료
+                    }
+
+                    JSONObject header = new JSONObject(headerJson);
+                    int bytes = header.getInt("bytes");
+
+                    // 지정된 바이트 수만큼 데이터를 읽고 파일에 기록
+                    read = fDis.read(buf, 0, bytes);
+                    fos.write(buf, 0, read);
+
             }
-            System.out.println("다운로드를 완료했습니다.");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             closeAll();
         }
     }
+
 
     public void closeAll() {
         try {

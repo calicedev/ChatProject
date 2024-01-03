@@ -31,43 +31,39 @@ class FileUploader extends Thread {
         jsonObject.put("command","upload");
         jsonObject.put("uploader", client.id);
         jsonObject.put("fileOriginName", file.getName());
-
+        jsonObject.put("fileSize", file.length());
         fDos.writeUTF(jsonObject.toString());
         fDos.flush();
     }
 
     @Override
     public void run() {
-        try {    // 파일전송 시작
-            byte[] buf = new byte[1024];
-            int read = -1;
-            // (recieveFromClient = fis.recieveFromClient(buf, 0, buf.length)) != -1로 하는 경우가 있는데 EOF Exception이 발생하기도 함
-            while ((read = fis.read(buf, 0, buf.length)) > 0) {
-                fDos.write(buf, 0, read);
+        try {
+            byte[] buffer = new byte[1024]; // 패킷 크기 설정
+            int read;
+            int packetNumber = 0;
+
+            while ((read = fis.read(buffer)) > 0) {
+                JSONObject header = new JSONObject();
+                header.put("packetNumber", ++packetNumber);
+                header.put("bytes", read);
+
+                fDos.writeUTF(header.toString()); // 헤더 전송
+                fDos.write(buffer, 0, read); // 데이터 전송
+                fDos.flush();
+
+                System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
             }
+            fDos.writeUTF("END_OF_FILE");
             fDos.flush();
             System.out.println("업로드를 완료했습니다.");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            try {
-                if (fis != null) {
-                    fis.close();
-                }
-            } catch (IOException e) {
-            }
-            try {
-                if (fDos != null) {
-                    fDos.close();
-                }
-            } catch (IOException e) {
-            }
-            try {
-                if (fSocket != null) {
-                    fSocket.close();
-                }
-            } catch (IOException e) {
-            }
+            // 자원 정리
+            try { if (fis != null) fis.close(); } catch (IOException e) { e.printStackTrace(); }
+            try { if (fDos != null) fDos.close(); } catch (IOException e) { e.printStackTrace(); }
+            try { if (fSocket != null) fSocket.close(); } catch (IOException e) { e.printStackTrace(); }
         }
     }
 }
