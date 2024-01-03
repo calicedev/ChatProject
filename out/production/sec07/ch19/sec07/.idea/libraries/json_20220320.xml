@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="json-20220320">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../Program Files/Java/jdk-17.0.9.9-hotspot/extlib/json-20220320.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
