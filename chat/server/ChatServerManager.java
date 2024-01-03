@@ -16,7 +16,6 @@ public class ChatServerManager extends Thread {
 	private String userId;
 	
 	// Serversocket으로 들어오는 접속을 감지되면 ChatServerManager 객체를 생성
-	// 1사용자 1ServerAgent
 	public ChatServerManager(Socket socket){
 		try {
 			this.socket = socket;
