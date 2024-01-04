@@ -69,22 +69,25 @@ public class FileServerManager extends Thread {
 			 DataInputStream fDis = new DataInputStream(socket.getInputStream())) {
 			byte[] buf = new byte[1024];
 			int read;
-			int lastPacketNumber = 0;
+			int lastPacketNumber = 0; // 마지막으로 처리된 패킷 번호를 추적하기 위해
 			long fileSize = 0;
 			String fileId = null;
 			String packetType = null;
 
 			while (true) {
 				String headerJson = fDis.readUTF(); // 헤더 정보 읽기
+
 				if ("END_OF_FILE".equals(headerJson)) {
 					System.out.println("File upload completed.");
 					break; // 파일 전송 완료
 				}
 
+				// 클라이언트가 전해준 코드에서 패킷 번호와, 바이트 수를 가져온다.
 				JSONObject header = new JSONObject(headerJson);
 				int packetNumber = header.getInt("packetNumber");
 				int bytes = header.getInt("bytes");
 
+				// 만약 패킷 번호가 이전 패킷 번호의 다음 번호와 일치하지 않는 경우 재전송 로직을 수행한다. 일치하면 ACK를 전송한다.
 				if (packetNumber != lastPacketNumber + 1) {
 //					System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
 					// 오류 처리 또는 재전송 요청
@@ -95,11 +98,14 @@ public class FileServerManager extends Thread {
 					// 재전송 로직 추가
 					while (true) {
 						// 패킷 재전송
-						String retransmitHeaderJson = fDis.readUTF();
-						fos.write(retransmitHeaderJson.getBytes("UTF-8"));
-						byte[] retransmitData = new byte[bytes];
-						fDis.read(retransmitData, 0, bytes);
-						fos.write(retransmitData, 0, bytes);
+						String retransmitHeaderJson  = fDis.readUTF();
+						JSONObject retransmitHeader = new JSONObject(retransmitHeaderJson);
+						int retransmitPacketNumber = retransmitHeader.getInt("packetNumber");
+						int retransmitBytes = retransmitHeader.getInt("bytes");
+
+						byte[] retransmitData = new byte[retransmitPacketNumber];
+						int readBytes = fDis.read(retransmitData, 0, bytes);
+						fos.write(retransmitData, 0, readBytes);
 
 						// 서버로부터 ACK 또는 ERROR 수신 대기
 						String response = fDis.readUTF();
@@ -115,6 +121,8 @@ public class FileServerManager extends Thread {
 					fDos.flush();
 				}
 
+				// 만약 첫번째 패킷이라면 파일 ID, 파일 크기, 패킷 유형을 설정한다.
+				// 첫번째 패킷이 아니라면 패킷 유형을 middle 로 설정한다.
 				if (packetNumber == 1) {
 					fileId = header.getString("fileId");
 					fileSize = header.getLong("fileSize");
