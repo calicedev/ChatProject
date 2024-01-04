@@ -61,17 +61,18 @@ public class FileServerManager extends Thread {
 		}
 	}
 
-	public void upload(String fileOriginName, String uploader) throws Exception{
+	public void upload(String fileOriginName, String uploader) throws Exception {
 		// 동일한 파일명을 가진 경우 잘못된 전송을 막기 위해 uuid를 사용
-		// 파일을 다운로드하는 경우에는 uuid, userId, file name 세가지를 받아서
-		// file name의 파일을 생성하고 발신자 userid가 업로드한 uuid의 파일 받음
 		String fileUuidName = UUID.randomUUID().toString();
-		// uuid로 된 파일저장
-		File file = new File(FILE_SAVED_PATH + fileUuidName);
-		try (FileOutputStream fos = new FileOutputStream(file)) {
+
+		try (FileOutputStream fos = new FileOutputStream(FILE_SAVED_PATH + fileUuidName);
+			 DataInputStream fDis = new DataInputStream(socket.getInputStream())) {
 			byte[] buf = new byte[1024];
 			int read;
 			int lastPacketNumber = 0;
+			long fileSize = 0;
+			String fileId = null;
+			String packetType = null;
 
 			while (true) {
 				String headerJson = fDis.readUTF(); // 헤더 정보 읽기
@@ -84,28 +85,40 @@ public class FileServerManager extends Thread {
 				int packetNumber = header.getInt("packetNumber");
 				int bytes = header.getInt("bytes");
 
-
 				if (packetNumber != lastPacketNumber + 1) {
 					System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
 					// 오류 처리 또는 재전송 요청
 					break;
 				}
 
+				if (packetNumber == 1) {
+					fileId = header.getString("fileId");
+					fileSize = header.getLong("fileSize");
+					packetType = "start";
+				} else {
+					packetType = "middle";
+				}
+
 				read = fDis.read(buf, 0, bytes);
 				fos.write(buf, 0, read);
 				lastPacketNumber = packetNumber;
 			}
-		}
-		// 파일 정보를 기록
-		HashMap<String, Object> info = new HashMap<>();
-		info.put("uploader", uploader);
-		info.put("fileOriginName", fileOriginName);
-		info.put("fileUuidName", fileUuidName);
 
-		FileServer.getInstance().regFile(info);
-		// 서버에 파일이 새로 올라왔음을 알림
-		ChatServer.getInstance().broadcastFile(uploader, fileOriginName, fileUuidName);
+			// 파일 업로드 정보 기록
+			HashMap<String, Object> info = new HashMap<>();
+			info.put("uploader", uploader);
+			info.put("fileOriginName", fileOriginName);
+			info.put("fileUuidName", fileUuidName);
+			info.put("fileId", fileId);
+			info.put("fileSize", fileSize);
+			info.put("packetType", packetType);
+
+			FileServer.getInstance().regFile(info);
+			// 서버에 파일이 새로 올라왔음을 알림
+			ChatServer.getInstance().broadcastFile(uploader, fileOriginName, fileUuidName);
+		}
 	}
+
 
 	/*public void download(String fileUuidName, String downloader) throws Exception{
 		

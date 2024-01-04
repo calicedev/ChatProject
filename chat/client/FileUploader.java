@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.UUID;
 
 import static chat.client.Client.*;
 
@@ -17,10 +18,11 @@ class FileUploader extends Thread {
     private DataOutputStream fDos;
     private FileInputStream fis;
 
+    private File file;
     FileUploader(Client client, String filePath) throws Exception {
         this.client = client;
         // 파일경로 + 파일이름으로 File 객체 생성
-        File file = new File(filePath);
+        this.file = new File(filePath);
 
         // 파일서버포트로 소켓연결
         this.fSocket = new Socket(SERVER_ADDRESS, FILE_SERVER_PORT);
@@ -42,11 +44,17 @@ class FileUploader extends Thread {
             byte[] buffer = new byte[1024]; // 패킷 크기 설정
             int read;
             int packetNumber = 0;
+            long fileSize = file.length();
+            String fileId = UUID.randomUUID().toString(); // 파일 식별자
 
             while ((read = fis.read(buffer)) > 0) {
                 JSONObject header = new JSONObject();
                 header.put("packetNumber", ++packetNumber);
                 header.put("bytes", read);
+//                header.put("checksum", calculateChecksum(buffer, read));
+                header.put("fileId", fileId);
+                header.put("fileSize", fileSize);
+                header.put("packetType", packetNumber == 1 ? "start" : "middle");
 
                 fDos.writeUTF(header.toString()); // 헤더 전송
                 fDos.write(buffer, 0, read); // 데이터 전송
