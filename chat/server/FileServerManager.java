@@ -134,8 +134,7 @@ public class FileServerManager extends Thread {
 			 DataOutputStream fDos = new DataOutputStream(socket.getOutputStream())) {
 			byte[] buf = new byte[1024]; // 버퍼 크기
 			int read;
-			int packetNumber = 0;
-
+			int packetNumber = 0;;
 			while ((read = fis.read(buf)) > 0) {
 				JSONObject header = new JSONObject();
 				header.put("packetNumber", ++packetNumber);
@@ -144,17 +143,21 @@ public class FileServerManager extends Thread {
 				fDos.writeUTF(header.toString()); // 헤더 전송
 				fDos.write(buf, 0, read); // 데이터 전송
 				fDos.flush();
+
+				// 로그 추가: 전송 중인 패킷 번호와 바이트 수를 출력
+				System.out.println("Packet " + packetNumber + ": " + read + " bytes sent");
+
+
 				// 간단한 흐름 제어
-				Thread.sleep(10);
+//				Thread.sleep(10);
 			}
 
 			// 파일 전송 완료 후 종료 신호 전송
 			fDos.writeUTF("END_OF_FILE");
 			fDos.flush();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
 		}
-
+		// 로그 추가: 파일 전송 완료 메시지
+		System.out.println("File transfer completed: " + fileUuidName);
 		// 파일 다운로드 완료 후 처리
 		FileServer.getInstance().checkReceivedFile(fileUuidName, downloader);
 	}

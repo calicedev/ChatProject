@@ -27,7 +27,7 @@ class FileDownloader extends Thread {
             this.fSocket = new Socket(SERVER_ADDRESS, FILE_SERVER_PORT);
             this.fDis = new DataInputStream(fSocket.getInputStream());
             this.fDos = new DataOutputStream(fSocket.getOutputStream());
-
+            System.out.println("파일 서버에 연결되었습니다.");
             // 받는다면
             if (isDownload) {
                 yesDownload();
@@ -51,6 +51,7 @@ class FileDownloader extends Thread {
         // 서버에서 받은 파일이름으로 File객체 생성
         File file = new File(FILE_PATH + client.fileInfo.get("fileOriginName"));
         fos = new FileOutputStream(file);
+        System.out.println("다운로드를 시작합니다: " + file.getName());
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command","download");
         jsonObject.put("downloader",client.id);
@@ -69,6 +70,7 @@ class FileDownloader extends Thread {
         jsonObject.put("data","n");
         fDos.writeUTF(jsonObject.toString());
         fDos.flush();
+        System.out.println("다운로드 요청이 거부되었습니다.");
 
     }
 
@@ -90,7 +92,7 @@ class FileDownloader extends Thread {
 
                     JSONObject header = new JSONObject(headerJson);
                     int bytes = header.getInt("bytes");
-
+                    System.out.println("패킷 받음: 바이트 수 = " + bytes);
                     // 지정된 바이트 수만큼 데이터를 읽고 파일에 기록
                     read = fDis.read(buf, 0, bytes);
                     fos.write(buf, 0, read);
