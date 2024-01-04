@@ -110,6 +110,7 @@ public class FileServerManager extends Thread {
 						// 서버로부터 ACK 또는 ERROR 수신 대기
 						String response = fDis.readUTF();
 						if ("ACK".equals(response)) {
+							
 							System.out.println("Packet " + packetNumber + " retransmitted successfully.");
 							break;
 						} else {
