@@ -60,7 +60,7 @@ class FileUploader extends Thread {
                 fDos.write(buffer, 0, read); // 데이터 전송
                 fDos.flush();
 
-                System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
+//                System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
             }
             fDos.writeUTF("END_OF_FILE");
             fDos.flush();

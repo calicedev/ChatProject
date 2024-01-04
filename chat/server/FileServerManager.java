@@ -86,7 +86,7 @@ public class FileServerManager extends Thread {
 				int bytes = header.getInt("bytes");
 
 				if (packetNumber != lastPacketNumber + 1) {
-					System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
+//					System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
 					// 오류 처리 또는 재전송 요청
 					break;
 				}
@@ -148,24 +148,30 @@ public class FileServerManager extends Thread {
 			byte[] buf = new byte[1024]; // 버퍼 크기
 			int read;
 			int packetNumber = 0;
+			long fileSize = file.length();
+			String fileId = UUID.randomUUID().toString();
 
 			while ((read = fis.read(buf)) > 0) {
 				JSONObject header = new JSONObject();
 				header.put("packetNumber", ++packetNumber);
 				header.put("bytes", read);
+				header.put("fileId", fileId);
+				header.put("fileSize", fileSize);
+
+				// 패킷 타입을 이렇게 두는 이유는 파일 전송 중에 현재 패킷의 유형을 의미합니다. start, middle로 나눠있는데
+				// 파일 시작에 패킷은 파일의 기본 정보와 함께 전송됩니다. 이 정보에서 파일 크기, 파일 식별자를 구분합니다.
+				header.put("packetType", packetNumber == 1 ? "start" : "middle");
 
 				fDos.writeUTF(header.toString()); // 헤더 전송
 				fDos.write(buf, 0, read); // 데이터 전송
 				fDos.flush();
-				// 간단한 흐름 제어
-				Thread.sleep(10);
+
+				System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
 			}
 
 			// 파일 전송 완료 후 종료 신호 전송
 			fDos.writeUTF("END_OF_FILE");
 			fDos.flush();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
 		}
 
 		// 파일 다운로드 완료 후 처리

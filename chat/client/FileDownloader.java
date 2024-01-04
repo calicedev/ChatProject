@@ -79,7 +79,10 @@ class FileDownloader extends Thread {
 
                 byte[] buf = new byte[1024];
                 int read;
-
+                int lastPacketNumber = 0;
+                long fileSize = 0;
+                String fileId = null;
+                String packetType = null;
                 while (true) {
                     // 서버로부터 헤더 정보(패킷 번호와 바이트 수)를 읽음
                     String headerJson = fDis.readUTF();
@@ -89,11 +92,27 @@ class FileDownloader extends Thread {
                     }
 
                     JSONObject header = new JSONObject(headerJson);
+                    int packetNumber = header.getInt("packetNumber");
                     int bytes = header.getInt("bytes");
+
+                    if (packetNumber != lastPacketNumber + 1) {
+                        System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
+                        // 오류 처리 또는 재전송 요청
+                        break;
+                    }
+
+                    if (packetNumber == 1) {
+                        fileId = header.getString("fileId");
+                        fileSize = header.getLong("fileSize");
+                        packetType = "start";
+                    } else {
+                        packetType = "middle";
+                    }
 
                     // 지정된 바이트 수만큼 데이터를 읽고 파일에 기록
                     read = fDis.read(buf, 0, bytes);
                     fos.write(buf, 0, read);
+                    lastPacketNumber = packetNumber;
 
             }
         } catch (IOException e) {
