@@ -64,7 +64,7 @@ public class FileServerManager extends Thread {
 	public void upload(String fileOriginName, String uploader) throws Exception {
 		// 동일한 파일명을 가진 경우 잘못된 전송을 막기 위해 uuid를 사용
 		String fileUuidName = UUID.randomUUID().toString();
-
+		fDos = new DataOutputStream(socket.getOutputStream());
 		try (FileOutputStream fos = new FileOutputStream(FILE_SAVED_PATH + fileUuidName);
 			 DataInputStream fDis = new DataInputStream(socket.getInputStream())) {
 			byte[] buf = new byte[1024];
@@ -88,7 +88,31 @@ public class FileServerManager extends Thread {
 				if (packetNumber != lastPacketNumber + 1) {
 //					System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
 					// 오류 처리 또는 재전송 요청
-					break;
+					// 클라이언트에게 ERROR 메시지를 보내 재전송 요청
+					fDos.writeUTF("ERROR");
+					fDos.flush();
+					System.out.println("Packet " + packetNumber + " transmission failed. Retrying...");
+					// 재전송 로직 추가
+					while (true) {
+						// 패킷 재전송
+						String retransmitHeaderJson = fDis.readUTF();
+						fos.write(retransmitHeaderJson.getBytes("UTF-8"));
+						byte[] retransmitData = new byte[bytes];
+						fDis.read(retransmitData, 0, bytes);
+						fos.write(retransmitData, 0, bytes);
+
+						// 서버로부터 ACK 또는 ERROR 수신 대기
+						String response = fDis.readUTF();
+						if ("ACK".equals(response)) {
+							System.out.println("Packet " + packetNumber + " retransmitted successfully.");
+							break;
+						} else {
+							System.out.println("Packet " + packetNumber + " retransmission failed. Retrying...");
+						}
+					}
+				}else{ // 패킷을 정상적으로 받았다는 ACK 전송
+					fDos.writeUTF("ACK");
+					fDos.flush();
 				}
 
 				if (packetNumber == 1) {
@@ -165,7 +189,26 @@ public class FileServerManager extends Thread {
 				fDos.writeUTF(header.toString()); // 헤더 전송
 				fDos.write(buf, 0, read); // 데이터 전송
 				fDos.flush();
+				String response = fDis.readUTF();
+				if ("ERROR".equals(response)) {
+					System.out.println("Packet " + packetNumber + " transmission failed. Retrying...");
+					// 재전송 로직 추가
+					while (true) {
+						// 패킷 재전송
+						fDos.writeUTF(header.toString()); // 헤더 전송
+						fDos.write(buf, 0, read); // 데이터 전송
+						fDos.flush();
 
+						// 서버로부터 ACK 또는 ERROR 수신 대기
+						response = fDis.readUTF();
+						if ("ACK".equals(response)) {
+							System.out.println("Packet " + packetNumber + " retransmitted successfully.");
+							break;
+						} else {
+							System.out.println("Packet " + packetNumber + " retransmission failed. Retrying...");
+						}
+					}
+				}
 				System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
 			}
 

@@ -96,9 +96,30 @@ class FileDownloader extends Thread {
                     int bytes = header.getInt("bytes");
 
                     if (packetNumber != lastPacketNumber + 1) {
-                        System.out.println("Packet out of order. Expected: " + (lastPacketNumber + 1) + ", but received: " + packetNumber);
-                        // 오류 처리 또는 재전송 요청
-                        break;
+                        fDos.writeUTF("ERROR");
+                        fDos.flush();
+                        System.out.println("Packet " + packetNumber + " transmission failed. Retrying...");
+                        // 재전송 로직 추가
+                        while (true) {
+                            // 패킷 재전송
+                            String retransmitHeaderJson = fDis.readUTF();
+                            fos.write(retransmitHeaderJson.getBytes("UTF-8"));
+                            byte[] retransmitData = new byte[bytes];
+                            fDis.read(retransmitData, 0, bytes);
+                            fos.write(retransmitData, 0, bytes);
+
+                            // 서버로부터 ACK 또는 ERROR 수신 대기
+                            String response = fDis.readUTF();
+                            if ("ACK".equals(response)) {
+                                System.out.println("Packet " + packetNumber + " retransmitted successfully.");
+                                break;
+                            } else {
+                                System.out.println("Packet " + packetNumber + " retransmission failed. Retrying...");
+                            }
+                        }
+                    }else{ // 패킷을 정상적으로 받았다는 ACK 전송
+                        fDos.writeUTF("ACK");
+                        fDos.flush();
                     }
 
                     if (packetNumber == 1) {

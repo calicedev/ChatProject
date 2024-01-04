@@ -2,10 +2,7 @@ package chat.client;
 
 import org.json.JSONObject;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.util.UUID;
 
@@ -16,6 +13,7 @@ class FileUploader extends Thread {
     private Client client;
     private Socket fSocket;
     private DataOutputStream fDos;
+    private DataInputStream fDis;
     private FileInputStream fis;
 
     private File file;
@@ -28,6 +26,7 @@ class FileUploader extends Thread {
         this.fSocket = new Socket(SERVER_ADDRESS, FILE_SERVER_PORT);
         this.fDos = new DataOutputStream(fSocket.getOutputStream());
         this.fis = new FileInputStream(file);
+        this.fDis = new DataInputStream(fSocket.getInputStream());
         // 파일서버에 발신자와 파일이름 전송
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command","upload");
@@ -61,6 +60,27 @@ class FileUploader extends Thread {
                 fDos.flush();
 
 //                System.out.println("Packet " + packetNumber + " sent, size: " + read + " bytes");
+                // reliable transfer 보장
+                String response = fDis.readUTF();
+                if ("ERROR".equals(response)) {
+                    System.out.println("Packet " + packetNumber + " transmission failed. Retrying...");
+                    // 재전송 로직 추가
+                    while (true) {
+                        // 패킷 재전송
+                        fDos.writeUTF(header.toString()); // 헤더 전송
+                        fDos.write(buffer, 0, read); // 데이터 전송
+                        fDos.flush();
+
+                        // 서버로부터 ACK 또는 ERROR 수신 대기
+                        response = fDis.readUTF();
+                        if ("ACK".equals(response)) {
+                            System.out.println("Packet " + packetNumber + " retransmitted successfully.");
+                            break;
+                        } else {
+                            System.out.println("Packet " + packetNumber + " retransmission failed. Retrying...");
+                        }
+                    }
+                }
             }
             fDos.writeUTF("END_OF_FILE");
             fDos.flush();
