@@ -106,4 +106,21 @@ public class FileServer extends Thread {
 			}
 		}
 	}
+	public void stopServer() {
+		try {
+			// 모든 클라이언트 연결 닫기
+			for (FileServerManager client : clients) {
+				client.closeAll();
+			}
+			// 서버 소켓 닫기
+			if (server != null && !server.isClosed()) {
+				server.close();
+			}
+			System.out.println("[FileServer] Server stopped");
+		} catch (IOException e) {
+			System.out.println("[Error] stopping FileServer: " + e.getMessage());
+		}
+	}
+
+
 }

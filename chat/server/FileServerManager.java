@@ -13,15 +13,15 @@ import java.util.HashMap;
 import java.util.UUID;
 
 public class FileServerManager extends Thread {
-	
+
 	private String FILE_SAVED_PATH = "C:\\Users\\Tmax\\upload\\";
-	
+
 	private Socket socket;
 	private DataInputStream fDis;
 	private DataOutputStream fDos;
 	private FileInputStream fis;
 	private FileOutputStream fos;
-	
+
 	// Serversocket으로 들어오는 접속을 감지하면 FileServerManager 객체 생성
 	public FileServerManager(Socket socket){
 		try {
@@ -38,7 +38,7 @@ public class FileServerManager extends Thread {
 	@Override
 	public void run() {
 		try {
-			// 들어온 메세지 upload/download에 따라 실행 메소드가 다름 
+			// 들어온 메세지 upload/download에 따라 실행 메소드가 다름
 			String msg = fDis.readUTF();
 			JSONObject inputJsonObject = new JSONObject(msg);
 			String command = inputJsonObject.getString("command");
@@ -110,7 +110,7 @@ public class FileServerManager extends Thread {
 						// 서버로부터 ACK 또는 ERROR 수신 대기
 						String response = fDis.readUTF();
 						if ("ACK".equals(response)) {
-							
+
 							System.out.println("Packet " + packetNumber + " retransmitted successfully.");
 							break;
 						} else {
@@ -152,27 +152,6 @@ public class FileServerManager extends Thread {
 		}
 	}
 
-
-	/*public void download(String fileUuidName, String downloader) throws Exception{
-		
-		fDos = new DataOutputStream(socket.getOutputStream());
-		// 업로드 된 파일 객체 생성
-		File file = new File(FILE_SAVED_PATH + fileUuidName);
-		fis = new FileInputStream(file);
-		
-		// 파일 전송
-		byte[] buf = new byte[1024];
-		int read = 0;
-		while((read = fis.read(buf, 0, buf.length)) > 0){
-			fDos.write(buf, 0, read);
-		}
-		fDos.flush();
-		try { if(fis != null) {fis.close(); }} catch (IOException e) {}
-		
-		// 해당 파일의 사용자 리스트에서 사용자 삭제
-		FileServer.getInstance().checkReceivedFile(fileUuidName, downloader);
-	}
-	*/
 
 	public void download(String fileUuidName, String downloader) throws IOException {
 		File file = new File(FILE_SAVED_PATH + fileUuidName);
@@ -232,10 +211,27 @@ public class FileServerManager extends Thread {
 
 
 	public void closeAll(){
-		try { if(fis != null) {fis.close(); }} catch (IOException e) {}
-		try { if(fos != null) {fos.close(); }} catch (IOException e) {}
-		try { if(fDis != null) {fDis.close();}} catch (IOException e) {}
-		try { if(fDos != null) {fDos.close(); }} catch (IOException e) {}
-		try { if(socket != null) {socket.close(); }} catch (IOException e) {}
+		try {
+			if(fis != null) {
+				fis.close(); }
+		} catch (IOException e) {}
+		try {
+			if(fos != null) {
+				fos.close(); }
+		} catch (IOException e) {}
+		try {
+			if(fDis != null) {
+				fDis.close();}
+		} catch (IOException e) {}
+		try {
+			if(fDos != null) {
+				fDos.close(); }
+		} catch (IOException e) {}
+		try {
+			if(socket != null) {
+				socket.close(); }
+		} catch (IOException e) {}
 	}
+
+
 }

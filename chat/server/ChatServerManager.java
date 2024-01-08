@@ -26,11 +26,7 @@ public class ChatServerManager extends Thread {
 		}
 	}
 
-	public void closeAll(){
-		try { if(dos != null) {dos.close();} } catch (IOException e) {}
-		try { if(dis != null) {dis.close();} } catch (IOException e) {}
-		try { if(socket != null) {socket.close();} } catch (IOException e) {}
-	}
+
 	
 	@Override
 	public void run() {
@@ -42,7 +38,7 @@ public class ChatServerManager extends Thread {
 		} catch (Exception e) {
 		} finally {
 			closeAll();
-			System.out.println("[ChatServer] Connection closed: "+ socket.toString());
+			System.out.println("나감 : "+ socket.toString());
 			ChatServer.getInstance().exitUser(this);
 		}
 	}
@@ -89,5 +85,24 @@ public class ChatServerManager extends Thread {
 	public String getUserId() {
 		return userId;
 	}
-	
+	public void closeAll(){
+		try {
+			if(dos != null) {
+				dos.close();
+			}
+		} catch (IOException e) {
+		}
+		try {
+			if(dis != null) {
+				dis.close();
+			}
+		} catch (IOException e) {
+		}
+		try {
+			if(socket != null) {
+				socket.close();
+			}
+		} catch (IOException e) {
+		}
+	}
 }

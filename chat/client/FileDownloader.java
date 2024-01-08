@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 import static chat.client.Client.*;
 
-class FileDownloader extends Thread {
+class FileDownloader implements Runnable {
 
     private Client client;
     private HashMap<String, String> fileInfo;
@@ -20,7 +20,7 @@ class FileDownloader extends Thread {
 
     private String FILE_PATH = "C:\\new\\";
 
-    FileDownloader(Client client, HashMap<String, String> fileInfo, boolean isDownload) {
+    FileDownloader(Client client, HashMap<String, String> fileInfo) {
         this.client = client;
         this.fileInfo = fileInfo;
         try {
@@ -28,15 +28,6 @@ class FileDownloader extends Thread {
             this.fDis = new DataInputStream(fSocket.getInputStream());
             this.fDos = new DataOutputStream(fSocket.getOutputStream());
 
-            // 받는다면
-            if (isDownload) {
-                yesDownload();
-                // 스레드 실행
-                this.start();
-            } else {
-                // 받지 않는다면
-                noDownload();
-            }
         } catch (SocketException e) {
             System.out.println("서버와 연결이 끊어졌습니다.");
             closeAll();

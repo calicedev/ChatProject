@@ -11,6 +11,8 @@ import java.net.SocketException;
 
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static chat.client.Client.ClientStatus.*;
 
@@ -27,6 +29,7 @@ public class Client {
 	private DataOutputStream dos;
 	private DataInputStream dis;
 
+	private ExecutorService threadPool = Executors.newFixedThreadPool(100);
 
 	private ClientStatus status;
 	HashMap<String, String> fileInfo;
@@ -53,9 +56,18 @@ public class Client {
 	}
 
 	public void closeAll(){
-		try { dis.close(); } catch (IOException e) {}
-		try { dos.close(); } catch (IOException e) {}
-		try { socket.close(); } catch (IOException e) {}
+		try {
+			dis.close();
+		} catch (IOException e) {
+		}
+		try {
+			dos.close();
+		} catch (IOException e) {
+		}
+		try {
+			socket.close();
+		} catch (IOException e) {
+		}
 	}
 
 	class sendToServer extends Thread {
@@ -95,10 +107,13 @@ public class Client {
 						id = input;
 						status = LOGGING_IN;
 					} else if(status == TEXT_TRANSMITTING) {
-						if(input.startsWith("/file")){
+						if("/file".equalsIgnoreCase(input)){
 							status = FILE_TRANSMITTING;
 							fileInfo.put("fileOriginName", input.split(" ")[1].trim());
 							System.out.print("파일을 전송하시겠습니까? (y/n) : ");
+						} else if ("/quit".equalsIgnoreCase(input)) {
+							closeAll();
+							break;
 						} else {
 							// [file]이 붙지 않으면 그냥 텍스트 전송
 							jsonObject.put("command", "message");
@@ -111,19 +126,23 @@ public class Client {
 						if(input.equals("y")){
 							// FileUploader 클래스에 경로가 포함된 파일이름을 넘겨주고 스레드 시작
 							FileUploader fileUploader = new FileUploader(Client.this, fileInfo.get("fileOriginName"));
-							fileUploader.start();
+							threadPool.submit(fileUploader);
 						}
 						// 텍스트 전송모드로 변경
 						// 파일 정보는 초기화
 						status = TEXT_TRANSMITTING;
 						fileInfo.clear();
 					} else if(status == FILE_DOWNLOADING) {
+						FileDownloader fileDownloader = new FileDownloader(Client.this, fileInfo);
+
 						// 파일을 다운로드한다면
 						if(input.equals("y")){
-							FileDownloader downloader = new FileDownloader(Client.this, fileInfo, true);
+							fileDownloader.yesDownload();
+							threadPool.submit(fileDownloader); // 스레드풀에 작업 제출
+
 						} else {
 							// FileDownloader 클래스에 파일정보(이름, uuid, 발신자) 넘겨주고 다운로드 하지 않음을 알림
-							FileDownloader downloader = new FileDownloader(Client.this,fileInfo, false);
+							fileDownloader.noDownload(); // 다운로드하지 않음을 처리
 						}
 						// 텍스트 전송모드로 변경
 						// 파일 정보는 초기화
@@ -133,7 +152,7 @@ public class Client {
 					lastSendTime = System.currentTimeMillis(); // 마지막 전송 시간 업데이트
 				} catch(SocketException e){
 					e.printStackTrace();
-					System.out.println("서버와 연결이 끊어졌습니다.");
+					System.out.println("서버와 연결이 끊었습니다.");
 					closeAll();
 					// break하지 않으면 SocketException가 무한으로 뜸
 					break;

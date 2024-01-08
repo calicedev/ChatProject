@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import static chat.client.Client.*;
 
-class FileUploader extends Thread {
+class FileUploader implements Runnable {
 
     private Client client;
     private Socket fSocket;
@@ -91,9 +91,28 @@ class FileUploader extends Thread {
             e.printStackTrace();
         } finally {
             // 자원 정리
-            try { if (fis != null) fis.close(); } catch (IOException e) { e.printStackTrace(); }
-            try { if (fDos != null) fDos.close(); } catch (IOException e) { e.printStackTrace(); }
-            try { if (fSocket != null) fSocket.close(); } catch (IOException e) { e.printStackTrace(); }
+            try {
+                if (fis != null){
+                    fis.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                if (fDos != null) {
+                    fDos.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                if (fSocket != null) {
+                    fSocket.close();}
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
