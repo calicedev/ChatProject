@@ -68,6 +68,9 @@ public class Client {
 			socket.close();
 		} catch (IOException e) {
 		}
+		threadPool.shutdown();
+
+		System.exit(0);
 	}
 
 	class sendToServer extends Thread {
@@ -107,7 +110,7 @@ public class Client {
 						id = input;
 						status = LOGGING_IN;
 					} else if(status == TEXT_TRANSMITTING) {
-						if("/file".equalsIgnoreCase(input)){
+						if(input.startsWith("/file")){
 							status = FILE_TRANSMITTING;
 							fileInfo.put("fileOriginName", input.split(" ")[1].trim());
 							System.out.print("파일을 전송하시겠습니까? (y/n) : ");
